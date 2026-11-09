@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Rust build artifacts
+rust_core/target/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Model base checkpoints (auto-downloaded by Ultralytics on first run)
+yolo11s.pt
+
+# Training runs & generated datasets
+runs/
+datasets/
+*.cache
+
+# Video and snapshot data (keep directories with .gitkeep)
+uploads/*
+!uploads/.gitkeep
+processed/*
+!processed/.gitkeep
+snapshots/*
+!snapshots/.gitkeep
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

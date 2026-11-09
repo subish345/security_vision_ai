@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Vision AI — Auto-Detection & Video Compliance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { background-color: #070a12; color: #f1f5f9; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .glass { background: rgba(13, 19, 33, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    /* VLC Slider Styling */
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: #f97316;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(249, 115, 22, 0.7);
+    }
+    input[type=range]::-moz-range-thumb {
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: #f97316;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 6px rgba(249, 115, 22, 0.7);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="glass sticky top-0 z-40 px-6 py-3.5 border-b border-slate-800/80">
+    <div class="max-w-[1750px] mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+        <h1 class="text-base font-bold tracking-wide text-white flex items-center gap-2">
+          SECURITY VISION AI
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/25">
+            Rust Core + Discrete GPU
+          </span>
+        </h1>
+      </div>
+
+      <!-- System Status Badges -->
+      <div class="flex items-center gap-3">
+        <div id="sceneBanner" class="hidden items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono text-emerald-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span id="sceneText">AI SCENE: DETECTING...</span>
+        </div>
+        <span id="modelBadge" class="text-xs font-mono px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          🎯 MODEL: CUSTOM SECURITY VISION (TRAINED)
+        </span>
+        <span id="gpuBadge" class="text-xs font-mono px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-slate-300">
+          GPU: LOCKED
+        </span>
+        <button onclick="toggleVoice()" id="btnVoice" class="px-3 py-1 rounded text-xs font-mono bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+          🔊 VOICE: ON
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 max-w-[1750px] w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: VIDEO UPLOAD, PROGRESS & ANNOTATED PLAYER (7 COLS) -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+
+      <!-- Upload & Environment Selection Card -->
+      <div class="glass rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+          <h2 class="text-xs font-mono font-bold uppercase tracking-wider text-sky-400">Video Upload & Automated AI Detection</h2>
+          <span class="text-[11px] font-mono text-slate-500">Supports .mp4, .avi, .mov, .mkv</span>
+        </div>
+
+        <form id="uploadForm" onsubmit="submitVideo(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-5">
+            <label class="block text-[11px] font-mono text-slate-400 mb-1">Select Video (Loads Immediately into Player)</label>
+            <input type="file" id="videoFile" accept="video/*" required onchange="loadSelectedVideo(this)"
+              class="w-full text-xs font-mono text-slate-300 file:mr-2.5 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-mono file:bg-sky-600 file:text-white hover:file:bg-sky-500 bg-slate-950 border border-slate-800 rounded-lg p-1" />
+          </div>
+
+          <div class="sm:col-span-4">
+            <label class="block text-[11px] font-mono text-slate-400 mb-1">Detection Pipeline</label>
+            <div class="w-full bg-slate-950 border border-emerald-500/30 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400 flex items-center justify-between shadow-inner">
+              <span class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-bold">🤖 Automated AI Detection</span>
+              </span>
+              <span class="text-[10px] text-emerald-400/90 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 font-semibold uppercase tracking-wider">Active</span>
+            </div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <button type="submit" id="btnAnalyze" class="w-full py-2 px-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-mono text-xs font-bold transition shadow-lg flex items-center justify-center gap-1.5">
+              <span>⚡</span> <span id="btnAnalyzeText">START AI ANALYSIS</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Progress Telemetry Bar -->
+        <div id="progressPanel" class="hidden bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span id="jobStatusText" class="text-orange-400 font-semibold">PROCESSING...</span>
+            <span id="jobSpeedText" class="text-emerald-400">0.0 FPS</span>
+          </div>
+          <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+            <div id="progressBar" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full transition-all duration-200" style="width: 0%"></div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <span id="frameCountText">Frames: 0 / 0</span>
+            <span id="jobAlertsCount">Violations: 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- VLC Tactical Video Player & Camera Feed Details Card -->
+      <div class="glass rounded-2xl overflow-hidden flex flex-col flex-1 shadow-2xl border border-slate-800/90">
+        <!-- Player Header & Action Toolbar -->
+        <div class="px-5 py-3 bg-slate-950/80 border-b border-slate-800/80 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse"></div>
+            <span class="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider">VLC Tactical Player</span>
+            <span id="vlcStatusBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+              CHOOSE VIDEO TO LOAD
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Feed Mode Toggle (Annotated vs Raw) -->
+            <div id="feedModeToggle" class="hidden items-center bg-slate-900 border border-slate-700/80 rounded-lg p-0.5 text-xs font-mono">
+              <button type="button" id="btnFeedAnnotated" onclick="switchVideoFeed('ANNOTATED')" class="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-orange-500 text-white transition">
+                ⭐ Annotated
+              </button>
+              <button type="button" id="btnFeedRaw" onclick="switchVideoFeed('RAW')" class="px-2.5 py-0.5 rounded text-[11px] text-slate-400 hover:text-white transition">
+                📹 Raw Feed
+              </button>
+            </div>
+            <!-- Toggle Camera OSD -->
+            <button id="btnToggleOsd" onclick="vlcToggleOsd()" class="hidden px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-mono transition" title="Toggle Surveillance Camera Feed Overlay">
+              👁️ OSD: ON
+            </button>
+            <!-- Copy Stream URL for External VLC App -->
+            <button id="btnCopyVlcUrl" onclick="vlcCopyStreamUrl()" class="hidden px-2.5 py-1 rounded bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 border border-orange-500/30 text-xs font-mono transition" title="Copy Stream URL to paste in desktop VLC (Media -> Open Network Stream)">
+              📋 VLC Stream URL
+            </button>
+            <!-- Download Button -->
+            <a id="downloadVideoBtn" href="#" download class="hidden px-3 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-mono hover:bg-emerald-500/25 transition">
+              ⬇ Download MP4
+            </a>
+          </div>
+        </div>
+
+        <!-- Video Viewport Container -->
+        <div id="vlcPlayerContainer" class="relative group bg-black flex-1 flex flex-col justify-center items-center min-h-[380px] select-none overflow-hidden">
+          <!-- Main HTML5 Video Element (Custom VLC Controls) -->
+          <video id="outputVideoPlayer" playsinline onclick="vlcTogglePlay()" ondblclick="vlcToggleFullscreen()" class="hidden w-full h-full max-h-[520px] object-contain cursor-pointer"></video>
+
+          <!-- Live In-Player Analysis Telemetry HUD -->
+          <div id="inPlayerAnalysisHud" class="hidden absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-slate-950/90 border border-orange-500/60 px-4 py-2 rounded-xl backdrop-blur-md shadow-2xl flex flex-col gap-1.5 w-[92%] max-w-md pointer-events-none transition-all">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="flex items-center gap-2 text-orange-400 font-bold">
+                <span class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
+                <span id="inPlayerStatusText">AI ANALYZING VIDEO...</span>
+              </span>
+              <span id="inPlayerFpsText" class="text-emerald-400 font-semibold">0.0 FPS</span>
+            </div>
+            <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+              <div id="inPlayerProgressBar" class="bg-gradient-to-r from-orange-500 to-amber-400 h-full transition-all duration-200" style="width: 0%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+              <span id="inPlayerFramesText">Frames: 0 / 0</span>
+              <span id="inPlayerAlertsText">Violations: 0</span>
+            </div>
+          </div>
+
+          <!-- Surveillance Camera Feed OSD (On-Screen Display HUD) -->
+          <div id="cameraOsdOverlay" class="hidden pointer-events-none absolute inset-0 p-4 flex flex-col justify-between z-20 transition-opacity duration-300">
+            <!-- Top Bar OSD -->
+            <div class="flex items-start justify-between text-xs font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              <div class="flex flex-col gap-1 bg-black/65 px-3 py-1.5 rounded-lg border border-slate-700/60 backdrop-blur-sm">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                  <span id="osdRecIndicator" class="font-bold text-rose-400">● LIVE FEED</span>
+                  <span class="text-slate-600">|</span>
+                  <span id="osdCamChannel" class="font-bold text-sky-400">CAM-01 [SURVEILLANCE]</span>
+                </div>
+                <div class="text-[11px] text-slate-300">
+                  <span id="osdTimecode">TC: 00:00:00.000</span>
+                  <span class="text-slate-500 mx-1">•</span>
+                  <span id="osdFrameIndex">FRAME: 0</span>
+                </div>
+              </div>
+
+              <div class="flex flex-col items-end gap-1 bg-black/65 px-3 py-1.5 rounded-lg border border-slate-700/60 backdrop-blur-sm">
+                <span id="osdResFps" class="text-emerald-400 font-semibold">1280x720 @ 30 FPS</span>
+                <span id="osdBackend" class="text-[11px] text-slate-300">NVIDIA RTX 5060 (FP16) • RUST PyO3</span>
+              </div>
+            </div>
+
+            <!-- Bottom OSD Badges -->
+            <div class="flex items-center justify-between text-xs font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              <div id="osdSceneBadge" class="bg-black/65 px-2.5 py-1 rounded border border-slate-700/60 text-sky-300 text-[11px] backdrop-blur-sm">
+                AI SCENE: AUTO
+              </div>
+              <div id="osdViolationBadge" class="bg-rose-950/80 px-2.5 py-1 rounded border border-rose-500/50 text-rose-300 text-[11px] font-bold backdrop-blur-sm">
+                VIOLATIONS: 0 LOGGED
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload / Processing Placeholder (Only shown when no video has been chosen) -->
+          <div id="videoPlaceholder" class="text-center p-8 flex flex-col items-center justify-center gap-3">
+            <div id="placeholderSpinner" class="hidden w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+            <p id="placeholderText" class="text-xs font-mono text-slate-400 max-w-md leading-relaxed">
+              Choose a video file above to load it directly into the VLC Tactical Player. Once loaded, click <strong class="text-orange-400">START AI ANALYSIS</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- VLC CONTROL BAR -->
+        <div id="vlcControlsBar" class="hidden bg-slate-950/95 border-t border-slate-800 p-3 flex flex-col gap-2.5 select-none z-30">
+          <!-- Seek Timeline Slider -->
+          <div class="relative w-full flex items-center">
+            <input type="range" id="vlcSeekBar" min="0" max="100" value="0" step="0.05" oninput="vlcOnSeekInput(this.value)"
+              class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none transition-all hover:h-2" />
+          </div>
+
+          <!-- Buttons & Controls Row -->
+          <div class="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-300">
+            <!-- Left Controls: Play/Pause, Rewind, Forward, Step, Time -->
+            <div class="flex items-center gap-2">
+              <button id="vlcBtnPlay" onclick="vlcTogglePlay()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold transition shadow-lg" title="Play / Pause (Space)">
+                ▶
+              </button>
+              <button onclick="vlcSkip(-5)" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition" title="Rewind 5s (Left Arrow)">
+                ⏪ -5s
+              </button>
+              <button onclick="vlcSkip(5)" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition" title="Forward 5s (Right Arrow)">
+                +5s ⏩
+              </button>
+              <button onclick="vlcStepFrame(1)" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-orange-500/50 text-orange-400 font-semibold transition" title="Advance 1 Frame (E or .)">
+                ▶| Step
+              </button>
+
+              <!-- Live Time Display -->
+              <div class="ml-2 font-mono text-xs text-slate-300">
+                <span id="vlcCurrentTime" class="text-orange-400 font-semibold">00:00:00</span>
+                <span class="text-slate-600">/</span>
+                <span id="vlcDuration" class="text-slate-400">00:00:00</span>
+              </div>
+            </div>
+
+            <!-- Center: Playback Speed Selector -->
+            <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-1">
+              <span class="text-[10px] text-slate-500">SPEED:</span>
+              <select id="vlcSpeedSelect" onchange="vlcSetSpeed(this.value)" class="bg-transparent text-xs font-mono text-orange-400 focus:outline-none cursor-pointer">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1.0" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2.0">2.0x</option>
+              </select>
+            </div>
+
+            <!-- Right Controls: Volume, Loop, PiP, Fullscreen -->
+            <div class="flex items-center gap-2.5">
+              <!-- Volume & Mute -->
+              <div class="flex items-center gap-1.5">
+                <button id="vlcBtnMute" onclick="vlcToggleMute()" class="text-slate-400 hover:text-white transition" title="Mute / Unmute (M)">
+                  🔊
+                </button>
+                <input type="range" id="vlcVolumeBar" min="0" max="1" step="0.05" value="1" oninput="vlcSetVolume(this.value)"
+                  class="w-16 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none" />
+              </div>
+
+              <!-- Loop Toggle -->
+              <button id="vlcBtnLoop" onclick="vlcToggleLoop()" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs transition" title="Toggle Loop">
+                🔁
+              </button>
+
+              <!-- Picture-in-Picture -->
+              <button onclick="vlcTogglePiP()" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs transition" title="Picture-in-Picture">
+                ⧉ PiP
+              </button>
+
+              <!-- Fullscreen -->
+              <button onclick="vlcToggleFullscreen()" class="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-orange-400 hover:text-white text-xs font-bold transition" title="Fullscreen (F)">
+                ⛶ Full
+              </button>
+            </div>
+          </div>
+
+          <!-- VLC Shortcuts Sub-bar -->
+          <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-900">
+            <span>Shortcuts: Space (Play/Pause) • ←/→ (±5s) • E (Frame Step) • ↑/↓ (Vol) • F (Fullscreen) • M (Mute)</span>
+            <span id="vlcFpsIndicator" class="text-emerald-400 font-semibold">Feed: 30.0 FPS</span>
+          </div>
+        </div>
+
+        <!-- Camera Feed Details Panel -->
+        <div id="cameraDetailsCard" class="hidden bg-slate-950/70 border-t border-slate-800/80 p-3.5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+          <div class="flex flex-col gap-0.5 bg-slate-900/60 p-2 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Camera Channel</span>
+            <span id="camChannelVal" class="text-sky-300 font-bold truncate">CAM-01 [CONSTRUCTION]</span>
+          </div>
+          <div class="flex flex-col gap-0.5 bg-slate-900/60 p-2 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Resolution & FPS</span>
+            <span id="camResVal" class="text-slate-200 truncate">1280x720 @ 30.0 FPS</span>
+          </div>
+          <div class="flex flex-col gap-0.5 bg-slate-900/60 p-2 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">AI Hardware Engine</span>
+            <span id="camHwVal" class="text-emerald-400 font-semibold truncate">RTX 5060 (FP16) + Rust</span>
+          </div>
+          <div class="flex flex-col gap-0.5 bg-slate-900/60 p-2 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Stream Codec</span>
+            <span id="camCodecVal" class="text-amber-300 font-semibold truncate">H.264 / AVC1 (Web & VLC)</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: SEPARATE COMPLIANCE AUDIT FEEDS (5 COLS) -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+
+      <!-- Environment Category Switcher (No "ALL" option) -->
+      <div class="glass rounded-2xl flex-1 flex flex-col overflow-hidden min-h-[580px] shadow-xl">
+        
+        <!-- Category Filter Tabs -->
+        <div class="px-4 py-3 bg-slate-950/60 border-b border-slate-800/80 flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <button onclick="filterLogs('CONSTRUCTION')" id="tab-CONSTRUCTION" class="tab-btn px-3 py-1 rounded-lg text-xs font-mono font-semibold bg-sky-600 text-white transition">
+              👷 Construction
+            </button>
+            <button onclick="filterLogs('OFFICE')" id="tab-OFFICE" class="tab-btn px-3 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition">
+              📱 Office
+            </button>
+            <button onclick="filterLogs('RESTAURANT')" id="tab-RESTAURANT" class="tab-btn px-3 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition">
+              🍽️ Restaurant
+            </button>
+          </div>
+          <button onclick="clearAlerts()" class="text-xs font-mono text-slate-500 hover:text-slate-300">Clear</button>
+        </div>
+
+        <!-- Alert Cards Container -->
+        <div id="alertFeed" class="flex-1 p-4 space-y-2.5 overflow-y-auto max-h-[640px]">
+          <p class="text-xs font-mono text-slate-500 text-center py-24">No compliance violations recorded for this environment.</p>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="vlcToast" class="fixed bottom-6 right-6 hidden bg-slate-900/95 border border-orange-500/50 text-orange-200 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-mono flex items-center gap-2.5 z-50 backdrop-blur-md">
+    <span class="text-orange-400 text-sm">⚡</span>
+    <span id="vlcToastText">VLC Stream URL copied to clipboard!</span>
+  </div>
+
+  <script>
+    let allAlerts = [];
+    let currentFilter = 'CONSTRUCTION';
+    let activeJobId = null;
+    let pollInterval = null;
+    let activeFps = 30.0;
+    let osdVisible = true;
+    let rawVideoUrl = null;
+    let annotatedVideoUrl = null;
+    let currentVideoUrl = null;
+    let currentJobData = null;
+    let activeFeedMode = 'RAW';
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/system/status');
+        const data = await res.json();
+        document.getElementById('gpuBadge').textContent = `GPU: ${data.device.toUpperCase()}`;
+        const mBadge = document.getElementById('modelBadge');
+        if (mBadge && data.model_name) {
+          mBadge.textContent = `🎯 MODEL: ${data.model_name.toUpperCase()}`;
+          mBadge.className = data.is_custom_model
+            ? 'text-xs font-mono px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold'
+            : 'text-xs font-mono px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800';
+        }
+      } catch (e) {
+        console.warn('Status fetch error:', e);
+      }
+    }
+
+    function connectWS() {
+      const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${proto}://${window.location.host}/ws/alerts`);
+
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'JOB_PROGRESS') {
+          updateJobUI(msg);
+          return;
+        }
+        if (msg.type === 'LIFECYCLE_UPDATE') {
+          const item = allAlerts.find(a => a.alert_id === msg.alert_id);
+          if (item) {
+            item.lifecycle_state = msg.lifecycle_state;
+            renderAlerts();
+          }
+          return;
+        }
+        allAlerts.unshift(msg);
+        renderAlerts();
+      };
+      ws.onclose = () => setTimeout(connectWS, 2000);
+    }
+
+    // Step 1: Immediately loads the selected video into VLC Tactical Player
+    function loadSelectedVideo(input) {
+      if (!input.files || !input.files.length) return;
+      const file = input.files[0];
+
+      if (rawVideoUrl) {
+        URL.revokeObjectURL(rawVideoUrl);
+      }
+      rawVideoUrl = URL.createObjectURL(file);
+      currentVideoUrl = rawVideoUrl;
+      activeFeedMode = 'RAW';
+
+      const player = document.getElementById('outputVideoPlayer');
+      const placeholder = document.getElementById('videoPlaceholder');
+      const vlcBar = document.getElementById('vlcControlsBar');
+      const detailsCard = document.getElementById('cameraDetailsCard');
+      const osdOverlay = document.getElementById('cameraOsdOverlay');
+      const vlcBadge = document.getElementById('vlcStatusBadge');
+      const osdBtn = document.getElementById('btnToggleOsd');
+      const btnAnalyzeText = document.getElementById('btnAnalyzeText');
+      const inPlayerHud = document.getElementById('inPlayerAnalysisHud');
+      const feedToggle = document.getElementById('feedModeToggle');
+
+      // Unhide player and VLC controls immediately so the user can play and inspect footage right away!
+      placeholder.classList.add('hidden');
+      player.classList.remove('hidden');
+      vlcBar.classList.remove('hidden');
+      detailsCard.classList.remove('hidden');
+      osdOverlay.classList.remove('hidden');
+      osdBtn.classList.remove('hidden');
+      inPlayerHud.classList.add('hidden');
+      feedToggle.classList.add('hidden');
+
+      vlcBadge.textContent = `RAW FEED: ${file.name.substring(0, 22)}`;
+      vlcBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30';
+
+      document.getElementById('osdRecIndicator').textContent = '● LOCAL FEED';
+      document.getElementById('osdCamChannel').textContent = `CAM-01 [${file.name.substring(0, 18)}]`;
+      document.getElementById('camChannelVal').textContent = file.name;
+      document.getElementById('camCodecVal').textContent = `${(file.size / (1024*1024)).toFixed(1)} MB (Ready for AI Analysis)`;
+
+      player.src = rawVideoUrl;
+      player.load();
+
+      if (btnAnalyzeText) {
+        btnAnalyzeText.textContent = 'START AI ANALYSIS';
+      }
+    }
+
+    // Step 2: Starts AI Analysis without hiding the video!
+    async function submitVideo(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('videoFile');
+      if (!fileInput.files.length) return;
+
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+
+      // DO NOT hide the video! Keep the video playing and interactive!
+      const inPlayerHud = document.getElementById('inPlayerAnalysisHud');
+      inPlayerHud.classList.remove('hidden');
+      document.getElementById('inPlayerStatusText').textContent = 'UPLOADING TO GPU ENGINE...';
+      document.getElementById('inPlayerProgressBar').style.width = '0%';
+      document.getElementById('inPlayerFpsText').textContent = '0.0 FPS';
+      document.getElementById('inPlayerFramesText').textContent = 'Frames: 0 / 0';
+      document.getElementById('inPlayerAlertsText').textContent = 'Violations: 0';
+
+      const btnAnalyze = document.getElementById('btnAnalyze');
+      const btnAnalyzeText = document.getElementById('btnAnalyzeText');
+      btnAnalyze.disabled = true;
+      if (btnAnalyzeText) btnAnalyzeText.textContent = 'ANALYZING...';
+
+      document.getElementById('progressPanel').classList.remove('hidden');
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('mode', 'AUTO');
+
+      try {
+        const res = await fetch('/api/video/analyze', { method: 'POST', body: formData });
+        const job = await res.json();
+        activeJobId = job.job_id;
+        updateJobUI(job);
+
+        // Fail-safe HTTP polling fallback in parallel with WebSocket
+        pollInterval = setInterval(async () => {
+          if (!activeJobId) return;
+          try {
+            const resp = await fetch(`/api/video/jobs/${activeJobId}`);
+            if (resp.ok) {
+              const data = await resp.json();
+              updateJobUI(data);
+              if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                clearInterval(pollInterval);
+                pollInterval = null;
+              }
+            }
+          } catch (err) {
+            console.warn('Job polling error:', err);
+          }
+        }, 1000);
+
+      } catch (err) {
+        inPlayerHud.classList.add('hidden');
+        btnAnalyze.disabled = false;
+        if (btnAnalyzeText) btnAnalyzeText.textContent = 'START AI ANALYSIS';
+        alert('Upload Error: ' + err.message);
+      }
+    }
+
+    function updateJobUI(job) {
+      if (!job) return;
+      currentJobData = job;
+
+      // Update Top Progress Card
+      document.getElementById('progressBar').style.width = `${job.progress_pct || 0}%`;
+      document.getElementById('jobStatusText').textContent = `${job.status} (${job.progress_pct || 0}%)`;
+      document.getElementById('jobSpeedText').textContent = `${job.processing_fps || 0} FPS`;
+      document.getElementById('frameCountText').textContent = `Frames: ${job.processed_frames || 0} / ${job.total_frames || 0}`;
+      document.getElementById('jobAlertsCount').textContent = `Violations: ${job.alerts_count || 0}`;
+
+      // Update In-Player Analysis HUD
+      const inPlayerHud = document.getElementById('inPlayerAnalysisHud');
+      const inPlayerStatus = document.getElementById('inPlayerStatusText');
+      const inPlayerProgress = document.getElementById('inPlayerProgressBar');
+      const inPlayerFps = document.getElementById('inPlayerFpsText');
+      const inPlayerFrames = document.getElementById('inPlayerFramesText');
+      const inPlayerAlerts = document.getElementById('inPlayerAlertsText');
+
+      if (inPlayerProgress) inPlayerProgress.style.width = `${job.progress_pct || 0}%`;
+      if (inPlayerFps) inPlayerFps.textContent = `${job.processing_fps || 0} FPS`;
+      if (inPlayerFrames) inPlayerFrames.textContent = `Frames: ${job.processed_frames || 0} / ${job.total_frames || 0}`;
+      if (inPlayerAlerts) inPlayerAlerts.textContent = `Violations: ${job.alerts_count || 0}`;
+
+      const statusLabel = job.status === 'ENCODING_FOR_WEB' ? 'ENCODING H.264 WEB VIDEO...' : job.status;
+      if (inPlayerStatus) inPlayerStatus.textContent = `${statusLabel} (${job.progress_pct || 0}%)`;
+
+      if (job.fps_source) {
+        activeFps = parseFloat(job.fps_source) || 30.0;
+        document.getElementById('vlcFpsIndicator').textContent = `Feed: ${activeFps.toFixed(1)} FPS`;
+      }
+
+      // Show AI Detected Scene Banner
+      if (job.detected_scene) {
+        const banner = document.getElementById('sceneBanner');
+        const text = document.getElementById('sceneText');
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+        text.textContent = `AI DETECTED: ${job.detected_scene} (${job.scene_confidence || 100}%)`;
+        filterLogs(job.detected_scene);
+      }
+
+      // Update OSD Violations
+      document.getElementById('osdViolationBadge').textContent = `VIOLATIONS: ${job.alerts_count || 0} LOGGED`;
+
+      if (job.status === 'COMPLETED' && job.output_video_url) {
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+
+        const btnAnalyze = document.getElementById('btnAnalyze');
+        const btnAnalyzeText = document.getElementById('btnAnalyzeText');
+        btnAnalyze.disabled = false;
+        if (btnAnalyzeText) btnAnalyzeText.textContent = 'RE-ANALYZE';
+
+        // Hide in-player HUD on complete
+        inPlayerHud.classList.add('hidden');
+
+        // Reveal download, external VLC URL, and Feed Mode Switcher
+        const dlBtn = document.getElementById('downloadVideoBtn');
+        const copyBtn = document.getElementById('btnCopyVlcUrl');
+        const feedToggle = document.getElementById('feedModeToggle');
+        const vlcBadge = document.getElementById('vlcStatusBadge');
+
+        dlBtn.classList.remove('hidden');
+        dlBtn.href = job.output_video_url;
+        copyBtn.classList.remove('hidden');
+        feedToggle.classList.remove('hidden');
+        feedToggle.classList.add('flex');
+
+        vlcBadge.textContent = 'AI COMPLIANCE FEED READY';
+        vlcBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+
+        // Populate Final Camera Feed Details & OSD HUD
+        const camChannel = job.camera_channel || `CAM-01 [${job.detected_scene || job.mode}]`;
+        const resFps = `${job.resolution || '1280x720'} @ ${(job.fps_source || 30.0)} FPS`;
+        const hwText = job.engine_backend || 'NVIDIA RTX 5060 (FP16) • RUST PyO3';
+        const sceneText = `AI SCENE: ${job.detected_scene || job.mode} (${job.scene_confidence || 100}%)`;
+
+        document.getElementById('osdRecIndicator').textContent = '● ARCHIVE REPLAY';
+        document.getElementById('osdCamChannel').textContent = camChannel;
+        document.getElementById('osdResFps').textContent = resFps;
+        document.getElementById('osdBackend').textContent = hwText;
+        document.getElementById('osdSceneBadge').textContent = sceneText;
+
+        document.getElementById('camChannelVal').textContent = camChannel;
+        document.getElementById('camResVal').textContent = resFps;
+        document.getElementById('camHwVal').textContent = hwText;
+        document.getElementById('camCodecVal').textContent = 'H.264 / AVC1 (Web & VLC)';
+
+        // Switch automatically to the annotated video
+        annotatedVideoUrl = job.output_video_url;
+        currentVideoUrl = job.output_video_url;
+        switchVideoFeed('ANNOTATED', false);
+
+      } else if (job.status === 'FAILED') {
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+        const btnAnalyze = document.getElementById('btnAnalyze');
+        const btnAnalyzeText = document.getElementById('btnAnalyzeText');
+        btnAnalyze.disabled = false;
+        if (btnAnalyzeText) btnAnalyzeText.textContent = 'START AI ANALYSIS';
+
+        if (inPlayerStatus) inPlayerStatus.textContent = 'ANALYSIS FAILED: ' + (job.error || 'Error');
+      } else {
+        // While processing
+        inPlayerHud.classList.remove('hidden');
+      }
+    }
+
+    // Allows instant switching between AI-Annotated Video and Original Raw Video
+    function switchVideoFeed(mode, retainTime = true) {
+      const player = document.getElementById('outputVideoPlayer');
+      const currentTime = retainTime ? player.currentTime : 0;
+      const isPaused = player.paused;
+
+      activeFeedMode = mode;
+      const btnAnnotated = document.getElementById('btnFeedAnnotated');
+      const btnRaw = document.getElementById('btnFeedRaw');
+
+      if (mode === 'ANNOTATED') {
+        btnAnnotated.className = 'px-2.5 py-0.5 rounded text-[11px] font-semibold bg-orange-500 text-white transition';
+        btnRaw.className = 'px-2.5 py-0.5 rounded text-[11px] text-slate-400 hover:text-white transition';
+        if (annotatedVideoUrl) {
+          currentVideoUrl = annotatedVideoUrl;
+          player.src = `${annotatedVideoUrl}?t=${Date.now()}`;
+          player.currentTime = currentTime;
+          if (!isPaused) player.play().catch(() => {});
+        }
+      } else {
+        btnRaw.className = 'px-2.5 py-0.5 rounded text-[11px] font-semibold bg-sky-600 text-white transition';
+        btnAnnotated.className = 'px-2.5 py-0.5 rounded text-[11px] text-slate-400 hover:text-white transition';
+        if (rawVideoUrl) {
+          currentVideoUrl = rawVideoUrl;
+          player.src = rawVideoUrl;
+          player.currentTime = currentTime;
+          if (!isPaused) player.play().catch(() => {});
+        }
+      }
+    }
+
+    // Jump VLC Player to exact violation timestamp
+    function vlcSeekToTime(timeSec) {
+      const player = document.getElementById('outputVideoPlayer');
+      if (!player || isNaN(player.duration)) return;
+      player.currentTime = Math.max(0, Math.min(player.duration, timeSec));
+      if (player.paused) player.play().catch(() => {});
+    }
+
+    // ==========================================
+    // VLC Tactical Player Controller Functions
+    // ==========================================
+
+    function formatTime(sec, includeMs = false) {
+      if (isNaN(sec) || sec < 0) sec = 0;
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = Math.floor(sec % 60);
+      const ms = Math.floor((sec % 1) * 1000);
+
+      const hh = h > 0 ? (h < 10 ? '0' + h + ':' : h + ':') : '';
+      const mm = m < 10 ? '0' + m : m;
+      const ss = s < 10 ? '0' + s : s;
+      const mms = ms < 10 ? '00' + ms : (ms < 100 ? '0' + ms : ms);
+
+      return includeMs ? `${hh}${mm}:${ss}.${mms}` : `${hh}${mm}:${ss}`;
+    }
+
+    function vlcTogglePlay() {
+      const player = document.getElementById('outputVideoPlayer');
+      if (player.paused || player.ended) {
+        player.play().catch(e => console.warn('Play error:', e));
+      } else {
+        player.pause();
+      }
+    }
+
+    function vlcSkip(deltaSeconds) {
+      const player = document.getElementById('outputVideoPlayer');
+      if (!player.duration) return;
+      player.currentTime = Math.max(0, Math.min(player.duration, player.currentTime + deltaSeconds));
+    }
+
+    function vlcStepFrame(direction = 1) {
+      const player = document.getElementById('outputVideoPlayer');
+      if (!player.duration) return;
+      if (!player.paused) player.pause();
+      const frameDuration = 1.0 / (activeFps || 30.0);
+      player.currentTime = Math.max(0, Math.min(player.duration, player.currentTime + (direction * frameDuration)));
+    }
+
+    function vlcOnSeekInput(val) {
+      const player = document.getElementById('outputVideoPlayer');
+      if (!player.duration) return;
+      player.currentTime = (val / 100) * player.duration;
+    }
+
+    function vlcSetSpeed(rate) {
+      const player = document.getElementById('outputVideoPlayer');
+      player.playbackRate = parseFloat(rate) || 1.0;
+    }
+
+    function vlcToggleMute() {
+      const player = document.getElementById('outputVideoPlayer');
+      player.muted = !player.muted;
+      document.getElementById('vlcBtnMute').textContent = player.muted ? '🔇' : '🔊';
+    }
+
+    function vlcSetVolume(vol) {
+      const player = document.getElementById('outputVideoPlayer');
+      player.volume = parseFloat(vol);
+      player.muted = (player.volume === 0);
+      document.getElementById('vlcBtnMute').textContent = player.muted ? '🔇' : '🔊';
+    }
+
+    function vlcToggleLoop() {
+      const player = document.getElementById('outputVideoPlayer');
+      player.loop = !player.loop;
+      const loopBtn = document.getElementById('vlcBtnLoop');
+      loopBtn.classList.toggle('text-orange-400', player.loop);
+      loopBtn.classList.toggle('bg-orange-500/20', player.loop);
+      loopBtn.classList.toggle('border-orange-500/40', player.loop);
+    }
+
+    function vlcTogglePiP() {
+      const player = document.getElementById('outputVideoPlayer');
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture().catch(console.warn);
+      } else if (document.pictureInPictureEnabled && player) {
+        player.requestPictureInPicture().catch(console.warn);
+      }
+    }
+
+    function vlcToggleFullscreen() {
+      const container = document.getElementById('vlcPlayerContainer');
+      if (!document.fullscreenElement) {
+        if (container.requestFullscreen) container.requestFullscreen();
+        else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    function vlcToggleOsd() {
+      osdVisible = !osdVisible;
+      const overlay = document.getElementById('cameraOsdOverlay');
+      const btn = document.getElementById('btnToggleOsd');
+      if (osdVisible) {
+        overlay.classList.remove('opacity-0');
+        btn.textContent = '👁️ OSD: ON';
+      } else {
+        overlay.classList.add('opacity-0');
+        btn.textContent = '👁️ OSD: OFF';
+      }
+    }
+
+    function showVlcToast(msg) {
+      const toast = document.getElementById('vlcToast');
+      const text = document.getElementById('vlcToastText');
+      text.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    function vlcCopyStreamUrl() {
+      if (!currentVideoUrl) return;
+      const fullUrl = window.location.origin + currentVideoUrl;
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        showVlcToast('Stream URL copied! In VLC: Media -> Open Network Stream (Ctrl+N)');
+      }).catch(() => {
+        prompt('Copy stream URL for desktop VLC:', fullUrl);
+      });
+    }
+
+    // Video Element Event Listeners
+    const playerEl = document.getElementById('outputVideoPlayer');
+    playerEl.addEventListener('play', () => {
+      document.getElementById('vlcBtnPlay').textContent = '⏸';
+    });
+    playerEl.addEventListener('pause', () => {
+      document.getElementById('vlcBtnPlay').textContent = '▶';
+    });
+    playerEl.addEventListener('ended', () => {
+      document.getElementById('vlcBtnPlay').textContent = '▶';
+    });
+
+    playerEl.addEventListener('loadedmetadata', () => {
+      document.getElementById('vlcDuration').textContent = formatTime(playerEl.duration);
+    });
+
+    playerEl.addEventListener('timeupdate', () => {
+      if (!playerEl.duration) return;
+      const pct = (playerEl.currentTime / playerEl.duration) * 100;
+      document.getElementById('vlcSeekBar').value = pct;
+      document.getElementById('vlcCurrentTime').textContent = formatTime(playerEl.currentTime);
+      document.getElementById('osdTimecode').textContent = `TC: ${formatTime(playerEl.currentTime, true)}`;
+      const frameNum = Math.floor(playerEl.currentTime * (activeFps || 30.0));
+      document.getElementById('osdFrameIndex').textContent = `FRAME: ${frameNum}`;
+    });
+
+    // VLC Keyboard Shortcuts Handler
+    window.addEventListener('keydown', (e) => {
+      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+      const player = document.getElementById('outputVideoPlayer');
+      if (player.classList.contains('hidden')) return;
+
+      switch (e.code) {
+        case 'Space':
+        case 'KeyK':
+          e.preventDefault();
+          vlcTogglePlay();
+          break;
+        case 'ArrowLeft':
+        case 'KeyJ':
+          e.preventDefault();
+          vlcSkip(-5);
+          break;
+        case 'ArrowRight':
+        case 'KeyL':
+          e.preventDefault();
+          vlcSkip(5);
+          break;
+        case 'KeyE':
+        case 'Period':
+          e.preventDefault();
+          vlcStepFrame(1);
+          break;
+        case 'Comma':
+          e.preventDefault();
+          vlcStepFrame(-1);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          player.volume = Math.min(1.0, player.volume + 0.1);
+          document.getElementById('vlcVolumeBar').value = player.volume;
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          player.volume = Math.max(0.0, player.volume - 0.1);
+          document.getElementById('vlcVolumeBar').value = player.volume;
+          break;
+        case 'KeyM':
+          e.preventDefault();
+          vlcToggleMute();
+          break;
+        case 'KeyF':
+          e.preventDefault();
+          vlcToggleFullscreen();
+          break;
+        case 'KeyO':
+        case 'KeyC':
+          e.preventDefault();
+          vlcToggleOsd();
+          break;
+      }
+    });
+
+    // Existing Alerts & Category Filter Functions
+    function renderAlerts() {
+      const feed = document.getElementById('alertFeed');
+      const filtered = allAlerts.filter(a => a.module_name === currentFilter);
+
+      if (!filtered.length) {
+        feed.innerHTML = `<p class="text-xs font-mono text-slate-500 text-center py-24">No ${currentFilter} violations recorded.</p>`;
+        return;
+      }
+
+      feed.innerHTML = filtered.slice(0, 50).map(a => {
+        const isCrit = a.severity === 'CRITICAL';
+        const badge = isCrit ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        const snapLink = a.snapshot_path
+          ? `<a href="${a.snapshot_path}" target="_blank" class="text-sky-400 hover:underline text-[11px] font-mono">📸 Snapshot</a>`
+          : '';
+        const tsJump = a.video_timestamp_sec != null
+          ? `<button onclick="vlcSeekToTime(${a.video_timestamp_sec})" class="px-2 py-0.5 rounded bg-orange-500/15 hover:bg-orange-500/25 text-orange-400 border border-orange-500/30 text-[10px] font-mono transition" title="Jump video to this timestamp">⏱️ ${a.video_timestamp_sec}s</button>`
+          : '';
+
+        return `
+          <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge}">${a.severity}</span>
+                <span class="font-semibold text-slate-200">${a.table_or_zone_id}</span>
+                ${tsJump}
+              </div>
+              <span class="text-[11px] text-slate-500">${a.lifecycle_state || 'RECEIVED'} • ${a.timestamp}</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">${a.message}</p>
+            <div class="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[11px] font-mono">
+              <div>${snapLink}</div>
+              <div class="flex gap-1.5">
+                ${a.lifecycle_state !== 'ACKNOWLEDGED' && a.lifecycle_state !== 'RESOLVED'
+                  ? `<button onclick="ackAlert('${a.alert_id}')" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white border border-slate-700">ACK</button>` : ''}
+                ${a.lifecycle_state !== 'RESOLVED'
+                  ? `<button onclick="resolveAlert('${a.alert_id}')" class="px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/60 border border-emerald-700/40">RESOLVE</button>`
+                  : `<span class="text-emerald-400">✓ AUDITED</span>`}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function ackAlert(id) { await fetch(`/api/alerts/${id}/acknowledge`, { method: 'POST' }); }
+    async function resolveAlert(id) { await fetch(`/api/alerts/${id}/resolve`, { method: 'POST' }); }
+    async function toggleVoice() {
+      const res = await fetch('/api/voice/toggle', { method: 'POST' });
+      const data = await res.json();
+      document.getElementById('btnVoice').textContent = data.voice_guidance_enabled ? '🔊 VOICE: ON' : '🔇 VOICE: MUTED';
+    }
+    function filterLogs(m) {
+      currentFilter = m;
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.className = 'tab-btn px-3 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition';
+      });
+      const activeBtn = document.getElementById(`tab-${m}`);
+      if (activeBtn) {
+        activeBtn.className = 'tab-btn px-3 py-1 rounded-lg text-xs font-mono font-semibold bg-sky-600 text-white transition';
+      }
+      renderAlerts();
+    }
+    function clearAlerts() { allAlerts = []; renderAlerts(); }
+
+    fetchStatus();
+    connectWS();
+  </script>
+</body>
+</html>

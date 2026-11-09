@@ -1,0 +1,43 @@
+# ==============================================================================
+# Security Vision AI Configuration
+# Video Upload & Batch Analysis Mode
+# ==============================================================================
+
+system:
+  # Set time_scale to 0.05 for testing short video clips (turns 10m [600s] into 30s, 5m [300s] into 15s)
+  # Set time_scale to 1.0 for full-length production videos
+  time_scale: 0.05
+  frame_drop_tolerance_sec: 1.8
+  inference_conf: 0.38
+  iou_threshold: 0.45
+
+  default_weights: "yolo11s.pt"
+  custom_ppe_weights: "weights/custom_security_vision.pt"
+
+  voice_guidance:
+    enabled: true
+    speech_rate: 165
+    volume: 0.9
+
+database:
+  url: "sqlite+aiosqlite:///./security_vision.db"
+
+thresholds:
+  construction:
+    alert_cooldown_sec: 5.0
+
+  office:
+    phone_continuous_threshold_sec: 5.0
+    phone_repeat_interval_sec: 10.0
+
+  restaurant:
+    idle_no_order_warning_sec: 300.0
+    unattended_waiter_dispatch_sec: 600.0
+    late_food_delivery_sec: 600.0
+    table_clear_grace_sec: 8.0
+
+restaurant_rois:
+  Table-01:
+    polygon: [[0.05, 0.40], [0.45, 0.40], [0.45, 0.90], [0.05, 0.90]]
+  Table-02:
+    polygon: [[0.55, 0.40], [0.95, 0.40], [0.95, 0.90], [0.55, 0.90]]

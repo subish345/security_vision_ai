@@ -1,0 +1,14 @@
+path: ./datasets/security_vision_custom
+train: images/train
+val: images/val
+
+names:
+  0: person
+  1: helmet
+  2: safety_vest
+  3: safety_shoes
+  4: cell phone
+  5: waiter
+  6: food
+  7: dining table
+  8: chair

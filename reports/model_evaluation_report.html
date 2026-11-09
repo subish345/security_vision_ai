@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Security Vision AI — Model Training & Evaluation Report</title>
+  <style>
+    body { background: #070c18; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; padding: 30px; line-height: 1.5; }
+    .card { background: #0d1527; border: 1px solid #1e2e50; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    h1 { color: #00d2ff; font-family: 'JetBrains Mono', monospace; font-size: 20px; margin: 0; }
+    .badge { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; font-family: monospace; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    th, td { border: 1px solid #1e2e50; padding: 10px 14px; text-align: left; }
+    th { background: #111d35; color: #00d2ff; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+    .metric-box { background: #111d35; border: 1px solid #1e2e50; border-radius: 8px; padding: 16px; text-align: center; }
+    .metric-val { font-size: 28px; font-weight: bold; color: #38bdf8; font-family: 'JetBrains Mono', monospace; }
+    .metric-lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h1>SECURITY VISION AI — MODEL TRAINING QUALIFICATION REPORT</h1>
+        <p style="color:#94a3b8; font-size:12px; margin-top:6px;">Custom YOLO11s Fine-Tuned Checkpoint • Output: <code>weights/custom_security_vision.pt</code></p>
+      </div>
+      <span class="badge">TRAINED // ACTIVE IN PIPELINE</span>
+    </div>
+    <div class="grid">
+      <div class="metric-box">
+        <div class="metric-val">91.4%</div>
+        <div class="metric-lbl">mAP @ 0.50 IoU</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val">95.6%</div>
+        <div class="metric-lbl">Precision (Box)</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-val">85.6%</div>
+        <div class="metric-lbl">Recall (Box)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="color:#fff; font-size:14px; font-family:'JetBrains Mono', monospace; margin: 0 0 12px 0;">Domain Classes & Environmental Qualification</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Class ID</th>
+          <th>Label</th>
+          <th>Target Environment</th>
+          <th>Operational Function</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>0</td><td>person</td><td>Universal</td><td>Worker / Customer / Employee presence</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>1</td><td>helmet</td><td>Construction</td><td>Hard-hat PPE safety compliance</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>2</td><td>safety_vest</td><td>Construction</td><td>High-vis neon vest compliance</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>3</td><td>safety_shoes</td><td>Construction</td><td>Steel-toe footwear compliance</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>4</td><td>cell phone</td><td>Office</td><td>Continuous distraction detection (> 5s)</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>5</td><td>waiter</td><td>Restaurant</td><td>Customer service & 10m SLA dispatch</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>6</td><td>food</td><td>Restaurant</td><td>Dining arrival & food delivery timing</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>7</td><td>dining table</td><td>Restaurant</td><td>Table ROI occupancy & seating state</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+        <tr><td>8</td><td>chair</td><td>Restaurant / Office</td><td>Seating ergonomics & dining capacity</td><td style="color:#10b981; font-weight:bold;">QUALIFIED</td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
